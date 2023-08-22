@@ -37,7 +37,7 @@ class Follower:
                         'data_type',
                         'params_str',
                         'payload_str',
-                        'request_length',
+                        'payload_length',
                         'response_text',
                         'response_length',
                         'response_duration_time',
@@ -116,7 +116,7 @@ class Follower:
             except Exception as err:
                 logger.error(err)
                 payload_str = payload_str_ori
-            request_length = len(payload_str) if payload_str else None
+            payload_length = len(payload_str) if payload_str else None
             status_code = flow.response.status_code
             response_text = flow.response.text
             # if response_length > 5000:
@@ -136,7 +136,7 @@ class Follower:
                            data_type,
                            params_str,
                            payload_str,
-                           request_length,
+                           payload_length,
                            response_text,
                            response_length,
                            response_duration_time,
