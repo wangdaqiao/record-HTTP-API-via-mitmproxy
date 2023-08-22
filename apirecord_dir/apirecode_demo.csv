@@ -1,0 +1,5 @@
+request_url,host,status_code,method,data_type,params_str,payload_str,payload_length,response_text,response_length,response_duration_time,finish_time
+/login,127.0.0.1,200,POST,json,,"{""email"": ""tester@xxx.com"", ""password"": ""yourpw""}",49,"{""data"": ""Ok,Let's go""}",28,0.0,20230822-15:42:52
+/search,127.0.0.1,200,GET,params,,,,"{""abc"": 123, ""def"": ""good""}",34,0.0,20230822-15:42:53
+/search,127.0.0.1,200,GET,params,"{""q"": ""hello""}",,,"{""abc"": 123, ""def"": ""good""}",34,0.0,20230822-15:42:53
+/search?q=hello&q=world&w=week,127.0.0.1,200,GET,params,,,,"{""abc"": 123, ""def"": ""good""}",34,0.0,20230822-15:42:53
