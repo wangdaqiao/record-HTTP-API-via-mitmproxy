@@ -30,23 +30,6 @@ class Follower:
             os.mkdir(self.records_dir)
         self.log_file = os.path.join(self.records_dir, f'apirecode_{date_hour_minute_str}.csv')
         logger.info(f'log to: {self.log_file}')
-        self.headers = ['request_url',
-                        'host',
-                        'status_code',
-                        'method',
-                        'data_type',
-                        'params_str',
-                        'payload_str',
-                        'payload_length',
-                        'response_text',
-                        'response_length',
-                        'response_duration_time',
-                        'finish_time'
-                        ]
-        if not os.path.exists(self.log_file):
-            with open(self.log_file, 'w', encoding='utf-8', newline='') as fw:
-                f_csv = csv.writer(fw)
-                f_csv.writerow(self.headers)
         logger.info('init...')
 
     def response(self, flow: http.HTTPFlow):
@@ -128,7 +111,20 @@ class Follower:
                 logger.error(err)
                 logger.error(response_text)
                 response_text = ''
-
+            # save api data to csv
+            headers = ['request_url',
+                       'host',
+                       'status_code',
+                       'method',
+                       'data_type',
+                       'params_str',
+                       'payload_str',
+                       'payload_length',
+                       'response_text',
+                       'response_length',
+                       'response_duration_time',
+                       'finish_time'
+                       ]
             api_content = [request_url,
                            flow.request.host,
                            status_code,
@@ -142,11 +138,12 @@ class Follower:
                            response_duration_time,
                            finish_time
                            ]
-            # save api data to csv
-            logger.info(f'will log: {request_url} {method} {response_duration_time=}')
-            csvfile = open(self.log_file, "a+", encoding='utf-8', newline='')
-            fw_csv = csv.DictWriter(csvfile, self.headers)
-            fw_csv.writerow(dict(zip(self.headers, api_content)))
+            logger.debug(f'will log: {request_url} {method} {response_duration_time=}')
+            with open(self.log_file, "a", encoding='utf-8', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=headers)
+                if csvfile.tell() == 0:
+                    writer.writeheader()
+                writer.writerow(dict(zip(headers, api_content)))
 
 
 addons = [
