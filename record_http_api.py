@@ -75,10 +75,12 @@ class Follower:
                 content_type = flow.request.headers['Content-Type']
             except KeyError:
                 content_type = ''
-            if 'form' in content_type:
-                data_type = "data"
-            elif 'json' in content_type:
+            if r'application/json' in content_type:
                 data_type = 'json'
+            elif r'application/x-www-form-urlencoded' in content_type:
+                data_type = "data"
+            elif r'multipart/form-data' in content_type:
+                data_type = 'file'
             else:
                 data_type = 'params'
             query = flow.request.query
