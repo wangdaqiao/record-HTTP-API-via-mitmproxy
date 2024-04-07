@@ -6,6 +6,8 @@ import csv
 import os
 import sys
 import time
+import re
+import urllib.parse
 from loguru import logger
 
 try:
@@ -60,6 +62,7 @@ class Follower:
         if flow.request.host in self.host_lst:
             # logger.debug(f'{flow.request.path=}')
             # logger.debug(f'{flow.request.url=}')
+            upload_filename = None
             request_url = flow.request.path.split("?")[0]
             if any(x in request_url for x in skip_urls):
                 logger.debug(f'not record {request_url}')
@@ -72,43 +75,65 @@ class Follower:
             response_duration_time = round(flow.response.timestamp_end - flow.request.timestamp_start, 2)
             finish_time = time.strftime("%Y%m%d-%H:%M:%S", time.localtime())
             try:
-                content_type = flow.request.headers['Content-Type']
+                request_content_type = flow.request.headers['Content-Type']
             except KeyError:
-                content_type = ''
-            if r'application/json' in content_type:
+                request_content_type = ''
+            if r'application/json' in request_content_type:
                 data_type = 'json'
-            elif r'application/x-www-form-urlencoded' in content_type:
+            elif r'application/x-www-form-urlencoded' in request_content_type:
                 data_type = "data"
-            elif r'multipart/form-data' in content_type:
+            elif r'multipart/form-data' in request_content_type:
                 data_type = 'file'
             else:
                 data_type = 'params'
+            if r'text/plain' in request_content_type or r'application/xml' in request_content_type:
+                return
+            # handle query
             query = flow.request.query
+            params_str = ''
             if query:
                 # may have multiple duplicate parameters, e.g. api.xxx.com/search?q=hi&q=world&lang=cn\
                 # query is MultiDictView[('q', 'hi'), ('q', 'world'), ('lang', 'cn')]
                 if any(len(query.get_all(key)) > 1 for key in query):
                     request_url = flow.request.path
-                    params_str = None
                 else:
-                    params_str = json.dumps(dict(query))
+                    params_str = json.dumps(dict(query), ensure_ascii=False)
+            # handle payload & upload file
+            if data_type == "data" and method == 'POST':
+                payload_str_unquote = urllib.parse.unquote(flow.request.content.decode('utf-8'))
+                pay_dct = dict(urllib.parse.parse_qsl(payload_str_unquote))
+                payload_str = json.dumps(pay_dct, ensure_ascii=False)
+            elif data_type == 'file' and method == 'POST':
+                request_body = flow.request.get_text()
+                # Extract file names using regular expressions
+                payload_str = ''
+                filename_pattern = r'filename="(.*?)"'
+                match = re.search(filename_pattern, request_body)
+                if match:
+                    upload_filename = match.group(1)
+                    logger.info(f"Extracted filename: {upload_filename}")
+                else:
+                    logger.info("Failed to extract filename.")
             else:
-                params_str = ''
-            payload_str_ori = flow.request.get_text()
-            # logger.debug(f'{payload_str_ori=}')
-            try:
-                payload_str = json.dumps(json.loads(payload_str_ori)) if payload_str_ori else payload_str_ori
-            except Exception as err:
-                logger.error(err)
-                payload_str = payload_str_ori
+                request_body = flow.request.get_text()
+                logger.debug(f'{request_body=}')
+                try:
+                    payload_str = json.dumps(json.loads(request_body), ensure_ascii=False) if request_body else request_body
+                except Exception as err:
+                    logger.error(err)
+                    payload_str = request_body
             payload_length = len(payload_str) if payload_str else None
+            response_content_type = flow.response.headers.get('Content-Type')
+            if response_content_type != 'application/json':
+                logger.info(f'{response_content_type=}')
+                return
             status_code = flow.response.status_code
             response_text = flow.response.text
             # if response_length > 5000:
             #     response_text = None
             # flow.response.headers["BOOM"] = "boom!boom!boom!"
             try:
-                response_text = json.dumps(json.loads(response_text))
+                response_text = json.dumps(json.loads(response_text), ensure_ascii=False)
             except Exception as err:
                 logger.error(err)
                 logger.error(response_text)
@@ -122,6 +147,7 @@ class Follower:
                        'params_str',
                        'payload_str',
                        'payload_length',
+                       'upload_file',
                        'response_text',
                        'response_length',
                        'response_duration_time',
@@ -135,6 +161,7 @@ class Follower:
                            params_str,
                            payload_str,
                            payload_length,
+                           upload_filename,
                            response_text,
                            response_length,
                            response_duration_time,
