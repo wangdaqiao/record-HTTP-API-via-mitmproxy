@@ -62,7 +62,9 @@ class Follower:
         if flow.request.host in self.host_lst:
             # logger.debug(f'{flow.request.path=}')
             # logger.debug(f'{flow.request.url=}')
-            upload_filename = None
+            params_str = ''
+            payload_str = ''
+            upload_filename = ''
             request_url = flow.request.path.split("?")[0]
             if any(x in request_url for x in skip_urls):
                 logger.debug(f'not record {request_url}')
@@ -90,7 +92,6 @@ class Follower:
                 return
             # handle query
             query = flow.request.query
-            params_str = ''
             if query:
                 # may have multiple duplicate parameters, e.g. api.xxx.com/search?q=hi&q=world&lang=cn\
                 # query is MultiDictView[('q', 'hi'), ('q', 'world'), ('lang', 'cn')]
@@ -106,7 +107,6 @@ class Follower:
             elif data_type == 'file' and method == 'POST':
                 request_body = flow.request.get_text()
                 # Extract file names using regular expressions
-                payload_str = ''
                 filename_pattern = r'filename="(.*?)"'
                 match = re.search(filename_pattern, request_body)
                 if match:
