@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import re
-import urllib.parse
+from urllib.parse import unquote, parse_qsl
 from loguru import logger
 
 try:
@@ -16,7 +16,7 @@ except OverflowError:
     # avoid OverflowError on Windows: "Python int too large to convert to C long"
     csv.field_size_limit(2147483647)
 
-host_lst = ['api.xxx.com', 'stageapi.xxx.com', '127.0.0.1']
+host_lst = ['api.xxx.com', 'stageapi.xxx.com', '127.0.0.1', ]
 
 
 class Follower:
@@ -100,8 +100,8 @@ class Follower:
                     params_str = json.dumps(dict(query), ensure_ascii=False)
             # handle payload & upload file
             if data_type == "data" and method == 'POST':
-                payload_str_unquote = urllib.parse.unquote(flow.request.content.decode('utf-8'))
-                pay_dct = dict(urllib.parse.parse_qsl(payload_str_unquote))
+                payload_str_unquote = unquote(flow.request.content.decode('utf-8'))
+                pay_dct = dict(parse_qsl(payload_str_unquote, keep_blank_values=True))
                 payload_str = json.dumps(pay_dct, ensure_ascii=False)
             elif data_type == 'file' and method == 'POST':
                 request_body = flow.request.get_text()
